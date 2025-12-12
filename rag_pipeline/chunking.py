@@ -1,30 +1,19 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
     """
     Takes a list of documents in the form:
-    { "text": "...", "metadata": {...} }
+    {"text": "...", "metadata": {...}}
 
-    Returns a list of chunked documents:
-    {
-        "text": chunk_text,
-        "metadata": original_metadata
-    }
+    Returns a list of chunked documents.
     """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n", ". ", " ", ""]
+        chunk_overlap=chunk_overlap
     )
 
-    chunked_output = []
+    texts = [doc["text"] for doc in documents]
+    metadatas = [doc["metadata"] for doc in documents]
 
-    for doc in documents:
-        chunks = splitter.split_text(doc["text"])
-        for chunk in chunks:
-            chunked_output.append({
-                "text": chunk,
-                "metadata": doc["metadata"]
-            })
-
-    return chunked_output
+    chunks = splitter.create_documents(texts, metadatas=metadatas)
+    return chunks
