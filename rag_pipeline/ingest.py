@@ -1,44 +1,65 @@
 import pandas as pd
-import json
-import os
+from pathlib import Path
 
-def build_documents():
-    df = pd.read_csv("data/etl_cleaned_dataset.csv")
+def load_etl_documents(csv_path="data/etl_cleaned_dataset.csv"):
+    """
+    Loads your cleaned ETL dataset and converts each row into a RAG-ready document.
+
+    OUTPUT FORMAT:
+    [
+        {
+            "text": "full text string here…",
+            "metadata": {
+                "title": "...",
+                "year": 2009,
+                "genres": "Action, Sci-Fi",
+                ...
+            }
+        },
+        ...
+    ]
+    """
+
+    csv_path = Path(csv_path)
+    if not csv_path.exists():
+        raise FileNotFoundError(f"ETL CSV not found at: {csv_path}")
+
+    df = pd.read_csv(csv_path)
+
+    # OPTIONAL: adjust these if your ETL columns are named differently
+    text_columns = [
+        "Title",
+        "Worldwide Gross",
+        "IMDb Rating",
+        "IMDb Vote Count",
+        "Genres",
+        "Original Language",
+        "Production Countries"
+    ]
 
     documents = []
 
-    for idx, row in df.iterrows():
-        text = f"""
-Title: {row.get('title', '')}
-Year: {row.get('year', '')}
-Genres: {row.get('genres_y', '')}
-Worldwide Gross: {row.get('worldwide_gross', '')}
-Domestic Gross: {row.get('domestic_gross', '')}
-Foreign Gross: {row.get('foreign_gross', '')}
-IMDb Rating: {row.get('imdb_avg_rating', '')}
-IMDb Votes: {row.get('imdb_num_votes', '')}
+    for _, row in df.iterrows():
 
-Summary:
-This film earned {row.get('worldwide_gross', '')} worldwide and received an IMDb rating of {row.get('imdb_avg_rating', '')}.
-""".strip()
+        # Build the "text" field (this is what will be embedded)
+        text_parts = []
+        for col in text_columns:
+            if col in df.columns:
+                text_parts.append(f"{col}: {row[col]}")
+        
+        full_text = " | ".join(text_parts)
+
+        # Build metadata
+        metadata = {
+            "title": row.get("Title", ""),
+            "year": int(row["Year"]) if "Year" in row and not pd.isna(row["Year"]) else None,
+            "genres": row.get("Genres", ""),
+            "language": row.get("Original Language", "")
+        }
 
         documents.append({
-            "id": f"movie_{idx}",
-            "text": text,
-            "metadata": {
-                "title": row.get("title"),
-                "year": row.get("year"),
-                "source": "etl_cleaned_dataset.csv"
-            }
+            "text": full_text,
+            "metadata": metadata
         })
 
-    os.makedirs("data", exist_ok=True)
-    with open("data/rag_documents.jsonl", "w") as f:
-        for d in documents:
-            f.write(json.dumps(d) + "\n")
-
-    print("Created", len(documents), "documents.")
-
-
-if __name__ == "__main__":
-    build_documents()
+    return documents
