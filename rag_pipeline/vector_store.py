@@ -5,20 +5,16 @@ from rag_pipeline.embeddings import get_embedding_model
 def build_faiss_index(chunks):
     """
     Build a FAISS index from LangChain Document objects.
-    Each chunk is a Document with:
-        chunk.page_content  (text)
-        chunk.metadata      (metadata)
     """
 
     embedder = get_embedding_model()
 
-    # Embed all chunk texts
     embeddings = []
     metadata_list = []
 
     for chunk in chunks:
-        text = chunk.page_content
-        metadata = chunk.metadata
+        text = chunk.page_content        # ✅ FIXED
+        metadata = chunk.metadata        # ✅ FIXED
 
         emb = embedder.embed_query(text)
         embeddings.append(emb)
@@ -26,7 +22,6 @@ def build_faiss_index(chunks):
 
     embeddings = np.array(embeddings).astype("float32")
 
-    # Create FAISS index
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
 
@@ -34,9 +29,6 @@ def build_faiss_index(chunks):
 
 
 def search_faiss(index, embeddings, metadata, query, k=5):
-    """
-    Search FAISS index and return top-k metadata entries.
-    """
 
     embedder = get_embedding_model()
     query_vec = np.array([embedder.embed_query(query)]).astype("float32")
