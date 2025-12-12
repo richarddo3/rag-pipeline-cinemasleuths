@@ -7,6 +7,7 @@ def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
 
     Returns a list of chunked documents.
     """
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
