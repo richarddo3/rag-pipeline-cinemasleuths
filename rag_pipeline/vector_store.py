@@ -4,9 +4,10 @@ from rag_pipeline.embeddings import get_embedding_model
 
 def build_faiss_index(chunks):
     """
-    chunks: list of Document-like dicts:
-        { "text": "...", "metadata": {...} }
-    Returns: (faiss_index, embeddings_matrix, metadata_list)
+    Build a FAISS index from text chunks.
+
+    chunks: list of dicts: { "text": "...", "metadata": {...} }
+    returns: index, embeddings_matrix, metadata_list
     """
     embedder = get_embedding_model()
 
@@ -14,7 +15,7 @@ def build_faiss_index(chunks):
     embeddings = [embedder.embed_query(chunk["text"]) for chunk in chunks]
     embeddings = np.array(embeddings).astype("float32")
 
-    # FAISS index (L2 or cosine normalized)
+    # Create FAISS index
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
 
@@ -24,6 +25,10 @@ def build_faiss_index(chunks):
 
 
 def search_faiss(index, embeddings, metadata, query, k=5):
+    """
+    Search the FAISS index with a user query.
+    Returns top-k chunks with metadata.
+    """
     embedder = get_embedding_model()
     q_vec = np.array([embedder.embed_query(query)]).astype("float32")
 
