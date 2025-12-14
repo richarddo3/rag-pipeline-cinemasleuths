@@ -1,4 +1,3 @@
-%%writefile rag-pipeline-cinemasleuths/rag_pipeline/rag.py
 def build_prompt(query, docs):
     context_blocks = []
     for d in docs:
@@ -9,10 +8,8 @@ def build_prompt(query, docs):
 
     return f"""
 You are a domain-specific assistant.
-Answer using ONLY the context provided.
-
-If the answer is not in the context, say:
-"I don’t know based on the available documents."
+Answer using ONLY the available context.
+If the answer is not in the context, say "I don't know based on the available documents."
 
 CONTEXT:
 {context}
