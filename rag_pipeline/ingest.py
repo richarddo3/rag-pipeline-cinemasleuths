@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pathlib import Path
 
 def load_csv_documents(csv_path):
     df = pd.read_csv(csv_path)
@@ -8,31 +9,30 @@ def load_csv_documents(csv_path):
     docs = []
     for i, row in df.iterrows():
 
-        # Build a meaningful text description for each movie
         text = f"""
-        Title: {row.get('Release Group', '')}
-        Rank: {row.get('Rank', '')}
-        Year: {row.get('Year', '')}
+        Title: {row['Release Group']}
+        Rank: {row['Rank']}
+        Year: {row['Year']}
 
-        Genres: {row.get('Genres', '')}
+        Genres: {row['Genres']}
 
-        Worldwide Gross: {row.get('$Worldwide', '')}
-        Domestic Gross: {row.get('$Domestic', '')} ({row.get('Domestic %', '')}%)
-        Foreign Gross: {row.get('$Foreign', '')} ({row.get('Foreign %', '')}%)
+        Worldwide Gross: {row['$Worldwide']}
+        Domestic Gross: {row['$Domestic']} ({row['Domestic %']}%)
+        Foreign Gross: {row['$Foreign']} ({row['Foreign %']}%)
 
-        Rating: {row.get('Rating', '')}
-        IMDb Avg Rating: {row.get('imdb_avg_rating', '')}
-        IMDb Votes: {row.get('imdb_num_votes', '')}
-        Vote Count: {row.get('Vote_Count', '')}
+        Rating: {row['Rating']}
+        IMDb Avg Rating: {row['imdb_avg_rating']}
+        IMDb Votes: {row['imdb_num_votes']}
+        Vote Count: {row['Vote_Count']}
 
-        Original Language: {row.get('Original_Language', '')}
-        Production Countries: {row.get('Production_Countries', '')}
+        Original Language: {row['Original_Language']}
+        Production Countries: {row['Production_Countries']}
         """
 
         docs.append({
             "id": f"row-{i}",
             "text": text,
-            "metadata": row.to_dict(),
+            "metadata": row.to_dict()
         })
 
     return docs
