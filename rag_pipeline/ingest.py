@@ -4,9 +4,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def load_csv_documents(csv_path, text_column=None):
     df = pd.read_csv(csv_path)
+    
     if text_column is None:
-        text_column = df.columns[0]
-
+        text_column = df.columns[0]  # Default: first column of CSV
+    
     docs = []
     for i, row in df.iterrows():
         docs.append({
@@ -19,12 +20,13 @@ def load_csv_documents(csv_path, text_column=None):
 
 def load_directory_texts(dir_path, extensions=(".txt", ".md", ".csv")):
     docs = []
+    
     for root, dirs, files in os.walk(dir_path):
         for fname in files:
             if fname.lower().endswith(extensions):
-                full = os.path.join(root, fname)
+                full_path = os.path.join(root, fname)
                 try:
-                    with open(full, "r", encoding="utf-8") as f:
+                    with open(full_path, "r", encoding="utf-8") as f:
                         text = f.read()
                     docs.append({
                         "id": fname,
@@ -41,14 +43,16 @@ def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
-
-    chunked_docs = []
+    
+    chunked = []
+    
     for doc in documents:
         chunks = splitter.split_text(doc["text"])
         for i, c in enumerate(chunks):
-            chunked_docs.append({
+            chunked.append({
                 "id": f"{doc['id']}_chunk_{i}",
                 "text": c,
                 "metadata": doc["metadata"]
             })
-    return chunked_docs
+    
+    return chunked
