@@ -1,9 +1,26 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+# embeddings.py
 
-def get_embedding_model(model_name="sentence-transformers/all-MiniLM-L6-v2"):
+from sentence_transformers import SentenceTransformer
+import numpy as np
+
+# Load embedding model ONCE (fast)
+_model = None
+
+def load_embedding_model():
     """
-    Loads a HuggingFace embedding model for use in vector stores.
-    Returns a LangChain-compatible embedding function.
+    Loads the BAAI/bge-small-en-v1.5 embedding model.
+    Only loads once globally.
     """
-    embedder = HuggingFaceEmbeddings(model_name=model_name)
-    return embedder
+    global _model
+    if _model is None:
+        _model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+    return _model
+
+
+def embed_texts(text_list):
+    """
+    Takes a list of strings and returns a list of embeddings (numpy vectors).
+    """
+    model = load_embedding_model()
+    embeddings = model.encode(text_list, convert_to_numpy=True)
+    return embeddings
