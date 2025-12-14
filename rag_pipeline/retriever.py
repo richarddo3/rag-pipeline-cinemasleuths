@@ -3,10 +3,7 @@ from rag_pipeline.vector_store import search_faiss
 
 class Retriever:
     """
-    Thin wrapper around FAISS search that stores:
-        - index
-        - embeddings matrix
-        - metadata list
+    Simple retriever that wraps FAISS-based vector search.
     """
 
     def __init__(self, index, embeddings, metadata):
@@ -14,15 +11,15 @@ class Retriever:
         self.embeddings = embeddings
         self.metadata = metadata
 
-    def retrieve(self, query, k=5):
+    def get_relevant_docs(self, query, k=5):
         """
-        Run similarity search and return top-k chunks + metadata
+        Returns list of metadata + scores for top-k docs.
         """
-        results = search_faiss(
+
+        return search_faiss(
             self.index,
             self.embeddings,
             self.metadata,
             query,
-            k=k
+            k,
         )
-        return results
