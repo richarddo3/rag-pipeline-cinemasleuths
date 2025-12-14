@@ -1,34 +1,28 @@
+import os
 import pandas as pd
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 def load_csv_documents(path):
     df = pd.read_csv(path)
-
-    docs = []
+    documents = []
     for _, row in df.iterrows():
-        docs.append({
-            "id": str(row.get("id", "")),
-            "source": "etl_cleaned_dataset.csv",
-            "text": row["text"]
+        documents.append({
+            "text": row["text"],
+            "metadata": {"source": path}
         })
-    return docs
+    return documents
 
 
-def chunk_documents(docs, chunk_size=800, overlap=150):
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=overlap
-    )
-
-    chunks = []
-    for d in docs:
-        pieces = splitter.split_text(d["text"])
-        for i, c in enumerate(pieces):
-            chunks.append({
-                "id": f"{d['id']}_{i}",
-                "text": c,
-                "source": d["source"]
-            })
-
-    return chunks
+def load_directory_texts(directory):
+    """Load all .txt files in a directory as documents."""
+    documents = []
+    for filename in os.listdir(directory):
+        if filename.endswith(".txt"):
+            full_path = os.path.join(directory, filename)
+            with open(full_path, "r", encoding="utf-8") as f:
+                documents.append({
+                    "text": f.read(),
+                    "metadata": {"source": filename}
+                })
+    return documents
