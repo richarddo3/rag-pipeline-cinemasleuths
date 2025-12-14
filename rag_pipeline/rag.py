@@ -1,53 +1,44 @@
-from rag_pipeline.retriever import Retriever
-from openai import OpenAI
-
-client = OpenAI()
-
-SYSTEM_PROMPT = """
-You are a domain-specific assistant. 
-Always answer ONLY using the context provided.
-If the answer is not in the retrieved context, say:
-'I could not find that information in the dataset.'
-
-Always cite the sources.
-"""
-
-def generate_answer(query, retriever, k=5):
-    # 1. Retrieve context
-    docs = retriever.get_relevant_docs(query, k=k)
-
-    # Build context string
-    context_text = ""
-    sources = []
-
+%%writefile rag_pipeline/rag.py
+def build_prompt(query, docs):
+    """
+    Build a grounded prompt for the LLM using retrieved context.
+    """
+    context_blocks = []
     for d in docs:
-        meta = d["metadata"]
-        snippet = meta.get("chunk", meta)  # fallback
-        context_text += f"- {snippet}\n"
-        sources.append(meta)
+        snippet = d.get("text", "")
+        context_blocks.append(snippet)
 
-    # 2. Build final prompt
-    prompt = f"""
-SYSTEM:
-{SYSTEM_PROMPT}
+    context = "\n\n".join(context_blocks)
+
+    return f"""
+You are a domain-specific assistant. 
+Answer using ONLY the context provided. 
+If the answer is not in the context, say "I don’t know based on the available documents."
 
 CONTEXT:
-{context_text}
+{context}
 
-USER QUESTION:
+QUESTION:
 {query}
-"""
 
-    # 3. Call local model
-    response = client.responses.create(
-        model="gpt-4o-mini",  # Replace with Qwen, Gemma, Phi later on VM
-        input=prompt
-    )
+ANSWER:
+""".strip()
 
-    # Extract text
-    answer = response.output_text
 
-    return {
-        "answer": answer,
-        "sources": sources
-    }
+def generate_answer(query, retriever, llm=None, k=5):
+    """
+    Retrieves context and then generates an answer using an LLM.
+    """
+    docs = retriever.get_relevant_docs(query, k=k)
+
+    # Build prompt
+    prompt = build_prompt(query, docs)
+
+    if llm is None:
+        # Placeholder response for testing
+        return {"answer": "(LLM not connected yet)", "sources": docs}
+
+    # Actual model call
+    result = llm(prompt)
+
+    return {"answer": result, "sources": docs}
