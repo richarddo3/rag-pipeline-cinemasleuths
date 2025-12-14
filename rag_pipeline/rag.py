@@ -32,16 +32,31 @@ def build_rag_pipeline(
 
 
 def answer_question(pipeline, question, k=4):
+    """
+    Answers a question using ONLY retrieved context.
+    Returns a dict containing:
+        - answer: grounded LLM answer
+        - sources: list of source chunks with ids + snippet + distance
+    """
+    
     docs = pipeline["documents"]
     index = pipeline["index"]
 
+    # --- Step 1: Retrieve Top-k Chunks ---
     retrieved = retrieve_top_k(index, docs, question, k=k)
 
-    context = "\n\n".join(r["text"] for r in retrieved)
+    # Create readable context block sent to the LLM
+    context = "\n\n".join(
+        f"[Source: {r['id']}]\n{r['text']}" for r in retrieved
+    )
 
-    prompt = f"""You are a movie data assistant.
+    # --- Step 2: Build grounded prompt ---
+    prompt = f"""
+You are a movie data assistant.
+
 Answer the user's question **using ONLY the context below**.
-If the answer is not in the context, say "I cannot answer from the provided data."
+If the answer is not in the context, say:
+"I cannot answer from the provided data."
 
 Question:
 {question}
@@ -52,18 +67,29 @@ Context:
 Answer:
 """
 
-    # use small LLM (Qwen, Phi, etc)
+    # --- Step 3: Call Local/OpenAI LLM ---
     from openai import OpenAI
     client = OpenAI()
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o-mini",     # Replace with Qwen/Phi/Gemma on the VM
         messages=[{"role": "user", "content": prompt}]
     )
 
-    answer = response.choices[0].message["content"]
+    answer = response.choices[0].message.get("content", "").strip()
+
+    # --- Step 4: Build Assignment-Compliant Output Format ---
+    sources_output = []
+    for r in retrieved:
+        snippet = r["text"][:200].replace("\n", " ")  # 200-char preview
+
+        sources_output.append({
+            "id": r["id"],
+            "distance": r["distance"],
+            "snippet": snippet
+        })
 
     return {
         "answer": answer,
-        "sources": retrieved
+        "sources": sources_output
     }
