@@ -1,36 +1,19 @@
 from flask import Flask, request, jsonify
-from rag_pipeline.ingest import load_csv_documents, chunk_documents
-from rag_pipeline.embeddings import embed_texts
-from rag_pipeline.vector_store import build_faiss_index
-from rag_pipeline.retriever import retrieve
-from rag_pipeline.rag import generate_answer
-
-import numpy as np
+from rag_pipeline.rag import build_rag_pipeline, answer_question
 
 app = Flask(__name__)
 
-print("Loading data...")
-docs_raw = load_csv_documents("data/etl_cleaned_dataset.csv")
-chunks = chunk_documents(docs_raw)
-texts = [c["text"] for c in chunks]
-embeddings = embed_texts(texts)
-index = build_faiss_index(embeddings)
-print("Ready.")
+print("Building RAG pipeline...")
+index, embeddings, metadata = build_rag_pipeline()
+print("RAG pipeline ready.")
 
-
-@app.post("/api/ask")
+@app.route("/api/ask", methods=["POST"])
 def ask():
     data = request.get_json()
-    question = data.get("question")
+    question = data.get("question", "")
 
-    retrieved = retrieve(question, chunks, index, k=5)
-    answer = generate_answer(question, retrieved)
-
-    return jsonify({
-        "answer": answer,
-        "sources": retrieved
-    })
-
+    result = answer_question(index, embeddings, metadata, question, k=4)
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
