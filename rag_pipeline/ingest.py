@@ -59,7 +59,7 @@ def load_directory_texts(dir_path, extensions=(".txt", ".md", ".csv")):
     return docs
 
 
-def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
+def chunk_documents(documents, chunk_size=5000, chunk_overlap=200):
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
