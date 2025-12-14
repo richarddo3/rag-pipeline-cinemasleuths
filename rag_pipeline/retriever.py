@@ -9,11 +9,12 @@ def retrieve_top_k(index, docs, query, k=5):
     results = []
     for dist, i in zip(distances, idxs):
         d = docs[i]
+        doc = metadata[i]  # entire chunk dict
+
         results.append({
-            "id": d["id"],
-            "text": d["text"],
-            "metadata": d["metadata"],
+            "id": doc["id"],
+            "text": doc["text"],
+            "metadata": doc["metadata"],
             "distance": float(dist)
         })
-
     return results
