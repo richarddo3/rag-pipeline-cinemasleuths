@@ -1,16 +1,33 @@
-from .embeddings import embed_texts
-from .vector_store import search_faiss
+import numpy as np
+from .embeddings import get_embedding_model
 
-def retrieve(query, docs, index, k=5):
-    q_emb = embed_texts([query])[0]
-    distances, idxs = search_faiss(index, q_emb, k=k)
-    
+# Load embedding model once
+embedder = get_embedding_model()
+
+def embed_query(text):
+    """Return embedding vector for a single query."""
+    return embedder.encode([text])[0]
+
+def retrieve_top_k(index, query, metadata, k=4):
+    """
+    index: FAISS index
+    query: user question (string)
+    metadata: list of metadata dicts corresponding to FAISS IDs
+    k: number of neighbors
+    """
+
+    # Get embedding for the query
+    q_emb = embed_query(query)
+    q_emb = np.array([q_emb]).astype("float32")
+
+    # FAISS search
+    distances, indices = index.search(q_emb, k)
+
     results = []
-    for dist, i in zip(distances, idxs):
-        d = docs[i]
+    for dist, idx in zip(distances[0], indices[0]):
         results.append({
-            "text": d["text"],
-            "source": d["source"],
+            "metadata": metadata[idx],
             "distance": float(dist)
         })
+
     return results
