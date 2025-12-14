@@ -1,4 +1,6 @@
-%%writefile rag-pipeline-cinemasleuths/rag_pipeline/retriever.py
+%%writefile /content/rag-pipeline-cinemasleuths/rag_pipeline/retriever.py
+# retriever.py - fixed file
+
 from rag_pipeline.vector_store import search_faiss
 
 class Retriever:
@@ -9,12 +11,12 @@ class Retriever:
 
     def get_relevant_docs(self, query, k=5):
         """
-        Returns metadata + distances for top-k documents.
+        Returns list of metadata + scores for top-k docs.
         """
         return search_faiss(
             self.index,
             self.embeddings,
             self.metadata,
             query,
-            k
+            k,
         )
