@@ -10,24 +10,26 @@ def load_csv_documents(csv_path):
     for i, row in df.iterrows():
 
         text = f"""
-        Title: {row['Release Group']}
-        Rank: {row['Rank']}
-        Year: {row['Year']}
-
-        Genres: {row['Genres']}
-
-        Worldwide Gross: {row['$Worldwide']}
-        Domestic Gross: {row['$Domestic']} ({row['Domestic %']}%)
-        Foreign Gross: {row['$Foreign']} ({row['Foreign %']}%)
-
-        Rating: {row['Rating']}
-        IMDb Avg Rating: {row['imdb_avg_rating']}
-        IMDb Votes: {row['imdb_num_votes']}
-        Vote Count: {row['Vote_Count']}
-
-        Original Language: {row['Original_Language']}
-        Production Countries: {row['Production_Countries']}
+        Movie Title: {row['Release Group']}
+        This movie was released in {row['Year']} and belongs to the genres: {row['Genres']}.
+        
+        It earned a worldwide gross of ${row['$Worldwide']:,}.
+        It made ${row['$Domestic']:,} domestically ({row['Domestic %']}%) 
+        and ${row['$Foreign']:,} in foreign markets ({row['Foreign %']}%).
+        
+        Audience reception:
+        - Rating: {row['Rating']}
+        - IMDb Average Rating: {row['imdb_avg_rating']}
+        - IMDb Votes: {row['imdb_num_votes']:,}
+        
+        Production details:
+        - Original Language: {row['Original_Language']}
+        - Production Countries: {row['Production_Countries']}
+        
+        Summary:
+        This film was one of the top-performing movies of its release year.
         """
+        
 
         docs.append({
             "id": f"row-{i}",
