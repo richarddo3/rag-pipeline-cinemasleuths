@@ -9,7 +9,8 @@ class Retriever:
 
     def get_relevant_docs(self, query, k=5):
         """
-        Return top-k most relevant document metadata using FAISS search.
+        Returns the top-k most relevant document metadata entries
+        using FAISS similarity search.
         """
         return search_faiss(
             self.index,
