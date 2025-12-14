@@ -46,9 +46,11 @@ def answer_question(pipeline, question, k=4):
     retrieved = retrieve_top_k(index, docs, question, k=k)
 
     # Create readable context block sent to the LLM
-    context = "\n\n".join(
-        f"[Source: {r['id']}]\n{r['text']}" for r in retrieved
+    ccontext = "\n\n".join(
+        f"[SOURCE: {r['id']}]\n{r['text']}"
+        for r in retrieved
     )
+
 
     # --- Step 2: Build grounded prompt ---
     prompt = f"""
