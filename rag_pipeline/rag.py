@@ -1,8 +1,7 @@
 from rag_pipeline.ingest import load_csv_documents, load_directory_texts
 from rag_pipeline.vector_store import build_faiss_index
-from rag_pipeline.retriever import retrieve_top_k
+from rag_pipeline.retriever import retrieve as retrieve_top_k
 from rag_pipeline.embeddings import get_embedding_model
-
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
