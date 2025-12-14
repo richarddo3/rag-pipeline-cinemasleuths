@@ -1,67 +1,33 @@
 import pandas as pd
-from pathlib import Path
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-def load_csv_documents(csv_path: str):
-    """
-    Load ETL-cleaned CSV and convert each row into a text document
-    with clear metadata so retrieval can cite the CSV correctly.
-    """
-    df = pd.read_csv(csv_path)
+def load_csv_documents(path):
+    df = pd.read_csv(path)
 
-    documents = []
-
-    for idx, row in df.iterrows():
-        # Build readable text for this row
-        text_parts = []
-        for col, val in row.items():
-            if pd.notnull(val):
-                text_parts.append(f"{col}: {val}")
-
-        text = "\n".join(text_parts)
-
-        metadata = {
-            "source": Path(csv_path).name,
-            "row": int(idx)
-        }
-
-        documents.append({
-            "text": text,
-            "metadata": metadata
+    docs = []
+    for _, row in df.iterrows():
+        docs.append({
+            "id": str(row.get("id", "")),
+            "source": "etl_cleaned_dataset.csv",
+            "text": row["text"]
         })
-
-    return documents
-
-
-def load_text_file(path: str):
-    """
-    Load raw text from a .txt file.
-    """
-    with open(path, "r") as f:
-        text = f.read()
-
-    return [{
-        "text": text,
-        "metadata": {
-            "source": Path(path).name
-        }
-    }]
+    return docs
 
 
-def load_directory_texts(directory: str):
-    """
-    Load all .txt files from additional_documents directory.
-    Useful for scraped pages, notes, etc.
-    """
-    directory = Path(directory)
-    documents = []
+def chunk_documents(docs, chunk_size=800, overlap=150):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=overlap
+    )
 
-    for file in directory.glob("*.txt"):
-        with open(file, "r") as f:
-            text = f.read()
+    chunks = []
+    for d in docs:
+        pieces = splitter.split_text(d["text"])
+        for i, c in enumerate(pieces):
+            chunks.append({
+                "id": f"{d['id']}_{i}",
+                "text": c,
+                "source": d["source"]
+            })
 
-        documents.append({
-            "text": text,
-            "metadata": {"source": file.name}
-        })
-
-    return documents
+    return chunks
