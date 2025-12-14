@@ -40,3 +40,14 @@ Answer:
     answer = tokenizer.decode(output[0], skip_special_tokens=True)
 
     return answer
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+def chunk_documents(documents):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800,
+        chunk_overlap=150
+    )
+    texts = [doc["text"] for doc in documents]
+    metadatas = [doc["metadata"] for doc in documents]
+    chunks = splitter.create_documents(texts, metadatas=metadatas)
+    return chunks
