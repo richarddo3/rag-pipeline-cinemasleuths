@@ -1,3 +1,5 @@
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+
 def build_prompt(query, docs):
     context_blocks = []
     for d in docs:
@@ -8,8 +10,9 @@ def build_prompt(query, docs):
 
     return f"""
 You are a domain-specific assistant.
-Answer using ONLY the available context.
-If the answer is not in the context, say "I don't know based on the available documents."
+You must answer ONLY using the context provided.
+If the answer is not in the context, say:
+"I don't know based on the available documents."
 
 CONTEXT:
 {context}
@@ -21,12 +24,40 @@ ANSWER:
 """.strip()
 
 
-def generate_answer(query, retriever, llm=None, k=5):
+# Load LLM only once (fast)
+_llm_pipeline = None
+
+def load_llm():
+    global _llm_pipeline
+    if _llm_pipeline is None:
+        model_name = "Qwen/Qwen1.5-4B-Chat"  # runs on 16GB VM
+        
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map="auto",
+            torch_dtype="auto"
+        )
+        _llm_pipeline = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            max_new_tokens=300
+        )
+    return _llm_pipeline
+
+
+def generate_answer(query, retriever, k=5):
     docs = retriever.get_relevant_docs(query, k=k)
+
     prompt = build_prompt(query, docs)
 
-    if llm is None:
-        return {"answer": "(LLM not connected yet)", "sources": docs}
+    llm = load_llm()
+    raw_output = llm(prompt)[0]["generated_text"]
 
-    result = llm(prompt)
-    return {"answer": result, "sources": docs}
+    answer = raw_output.replace(prompt, "").strip()
+
+    return {
+        "answer": answer,
+        "sources": docs
+    }
