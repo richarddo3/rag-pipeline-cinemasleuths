@@ -1,27 +1,14 @@
-# embeddings.py
-
 from sentence_transformers import SentenceTransformer
-import numpy as np
 
-# Cache so model loads only once
-_model = None  
+_model = None
 
-def load_embedding_model(model_name="BAAI/bge-small-en-v1.5"):
-    """
-    Loads a SentenceTransformer embedding model.
-    Reuses the same model instance for speed.
-    """
+def load_embedding_model():
     global _model
     if _model is None:
-        _model = SentenceTransformer(model_name)
+        _model = SentenceTransformer("BAAI/bge-small-en-v1.5")
     return _model
 
 
-def embed_texts(text_list):
-    """
-    Takes a list of strings and returns their embeddings as numpy arrays.
-    This is what the vector store and retriever rely on.
-    """
+def embed_texts(texts):
     model = load_embedding_model()
-    embeddings = model.encode(text_list, normalize_embeddings=True, convert_to_numpy=True)
-    return embeddings
+    return model.encode(texts, convert_to_numpy=True)
