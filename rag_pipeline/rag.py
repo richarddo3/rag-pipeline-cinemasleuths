@@ -10,18 +10,14 @@ This file handles:
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-
-# ----------------------------------------
-# 1. Load Local LLM
-# ----------------------------------------
 def load_llm():
     """
-    Loads a lightweight open-source LLM that fits in a 16GB VM.
-    Modify here if you want to switch models.
+    Loads a small local LLM that fits in 16GB RAM.
+    Modify this if you prefer a different model.
     """
     model_name = "microsoft/Phi-3-mini-4k-instruct"
 
-    print("Loading LLM... (this may take ~15–25 seconds)")
+    print("Loading local LLM...")
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(
@@ -31,7 +27,7 @@ def load_llm():
         low_cpu_mem_usage=True,
     )
 
-    print("LLM Loaded Successfully.")
+    print("Model loaded successfully.")
     return tokenizer, model
 
 
