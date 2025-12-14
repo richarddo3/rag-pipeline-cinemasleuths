@@ -1,102 +1,80 @@
-"""
-rag.py
-
-This file handles:
-- Prompt construction
-- Retrieval -> LLM generation
-- Local model loading (Phi-3 Mini recommended)
-"""
-
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+# ---------------------------
+# Load Local LLM
+# ---------------------------
 def load_llm():
     """
-    Loads a small local LLM that fits in 16GB RAM.
-    Modify this if you prefer a different model.
+    Loads a small local LLM that fits on a 16GB VM.
+    Modify model_name if you'd rather use Qwen, Gemma, etc.
     """
     model_name = "microsoft/Phi-3-mini-4k-instruct"
 
-    print("Loading local LLM...")
+    print("Loading LLM:", model_name)
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         device_map="auto",
         torch_dtype=torch.float16,
-        low_cpu_mem_usage=True,
+        low_cpu_mem_usage=True
     )
 
-    print("Model loaded successfully.")
+    print("LLM loaded successfully.")
     return tokenizer, model
 
 
-# ----------------------------------------
-# 2. Build Prompt
-# ----------------------------------------
-def build_prompt(query, docs):
+# ---------------------------
+# Generate Answer
+# ---------------------------
+def generate_answer(question, retriever, llm=None):
     """
-    Creates a grounded prompt for the LLM using retrieved context chunks.
+    Retrieves context and (optionally) generates an answer using an LLM.
+    If llm is None, returns retrieved chunks only.
     """
+    docs = retriever.get_relevant_docs(question)
 
+    # Convert docs into text
     context_blocks = []
     for d in docs:
-        snippet = d.get("text", "")
-        context_blocks.append(snippet)
+        context_blocks.append(f"[source={d['metadata']}] {d['text']}")
 
-    context = "\n\n".join(context_blocks)
+    context_text = "\n\n".join(context_blocks)
 
-    return f"""
-You are a domain-specific assistant.
-Answer ONLY using the context below. 
-If the answer is not present in the context, say:
-"I don't know based on the available documents."
-
-CONTEXT:
-{context}
-
-QUESTION:
-{query}
-
-ANSWER:
-""".strip()
-
-
-# ----------------------------------------
-# 3. Generate Answer Using RAG Pipeline
-# ----------------------------------------
-def generate_answer(query, retriever, llm=None, k=5):
-    """
-    Retrieves context and generates an answer using an LLM.
-    """
-
-    # Step 1: Retrieve top-k documents
-    docs = retriever.get_relevant_docs(query, k=k)
-
-    # Step 2: Build grounded prompt
-    prompt = build_prompt(query, docs)
-
-    # Step 3: Load LLM if not provided
+    # If no LLM provided → return retrieval results only
     if llm is None:
-        tokenizer, model = load_llm()
-    else:
-        tokenizer, model = llm
+        return {
+            "answer": "(LLM not connected yet)",
+            "sources": docs
+        }
 
-    # Tokenize input
+    tokenizer, model = llm
+
+    prompt = f"""
+Answer the following question using ONLY the provided context.
+If the answer is not in the context, say "I cannot answer from the given data."
+
+### QUESTION:
+{question}
+
+### CONTEXT:
+{context_text}
+
+### ANSWER:
+"""
+
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-    # Step 4: Generate answer
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=300,
-            temperature=0.2,
-            do_sample=False,
-        )
+    output = model.generate(
+        **inputs,
+        max_new_tokens=256,
+        temperature=0.2,
+    )
 
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    answer = tokenizer.decode(output[0], skip_special_tokens=True)
 
     return {
         "answer": answer,
-        "sources": docs,
+        "sources": docs
     }
