@@ -1,32 +1,32 @@
-import numpy as np
-from .embeddings import get_embedding_model
+from .embeddings import embed_texts
+from .vector_store import search_faiss
 
-# Load embedding model once
-embedder = get_embedding_model()
-
-def embed_query(text):
-    """Return embedding vector for a single query."""
-    return embedder.encode([text])[0]
-
-def retrieve_top_k(index, query, metadata, k=4):
+def retrieve_top_k(index, query, metadata, k=5):
     """
-    index: FAISS index
-    query: user question (string)
-    metadata: list of metadata dicts corresponding to FAISS IDs
-    k: number of neighbors
+    Returns the top-k closest documents to the query.
+    
+    Parameters:
+        index     – FAISS index
+        query     – user question as a string
+        metadata  – list of metadata entries (same order as chunks)
+        k         – number of results
+
+    Returns:
+        List of dictionaries containing:
+            - metadata
+            - distance
     """
+    
+    # Embed the query
+    q_emb = embed_texts([query])[0]
 
-    # Get embedding for the query
-    q_emb = embed_query(query)
-    q_emb = np.array([q_emb]).astype("float32")
-
-    # FAISS search
-    distances, indices = index.search(q_emb, k)
+    # Search FAISS for k-nearest vectors
+    distances, idxs = search_faiss(index, q_emb, k=k)
 
     results = []
-    for dist, idx in zip(distances[0], indices[0]):
+    for dist, i in zip(distances, idxs):
         results.append({
-            "metadata": metadata[idx],
+            "metadata": metadata[i],   # matches your rag.py usage
             "distance": float(dist)
         })
 
