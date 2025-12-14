@@ -1,5 +1,6 @@
 import pandas as pd
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 
 def load_csv_documents(path):
     df = pd.read_csv(path)
