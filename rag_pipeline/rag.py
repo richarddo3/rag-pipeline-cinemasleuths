@@ -1,53 +1,87 @@
-from .retriever import retrieve
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-# Load local LLM (pick one from project list)
-MODEL_NAME = "Qwen/Qwen1.5-4B-Chat"
-
-_tokenizer = None
-_model = None
-
-def load_llm():
-    global _tokenizer, _model
-    if _model is None:
-        _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-        _model = AutoModelForCausalLM.from_pretrained(
-            MODEL_NAME,
-            device_map="auto"
-        )
-    return _tokenizer, _model
-
-
-def generate_answer(question, retrieved_chunks):
-    tokenizer, model = load_llm()
-
-    context = "\n\n".join([c["text"] for c in retrieved_chunks])
-
-    prompt = f"""
-You are a grounded assistant. Use ONLY the context below.
-If the answer is not in the context, say "I do not know".
-
-Context:
-{context}
-
-Question: {question}
-
-Answer:
-"""
-
-    tokens = tokenizer(prompt, return_tensors="pt").to(model.device)
-    output = model.generate(**tokens, max_new_tokens=250)
-    answer = tokenizer.decode(output[0], skip_special_tokens=True)
-
-    return answer
+from rag_pipeline.ingest import load_csv_documents, load_directory_texts
+from rag_pipeline.vector_store import build_faiss_index
+from rag_pipeline.retriever import retrieve_top_k
+from rag_pipeline.embeddings import get_embedding_model
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-def chunk_documents(documents):
+
+
+# -----------------------------
+# CHUNKING FUNCTION (no separate file)
+# -----------------------------
+def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=150
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
     )
+
     texts = [doc["text"] for doc in documents]
     metadatas = [doc["metadata"] for doc in documents]
+
     chunks = splitter.create_documents(texts, metadatas=metadatas)
     return chunks
+
+
+# -----------------------------
+# BUILD THE FULL RAG PIPELINE
+# -----------------------------
+def build_rag_pipeline():
+    csv_path = "data/etl_cleaned_dataset.csv"
+    extra_docs_dir = "data/additional_documents"
+
+    print("Loading CSV documents...")
+    csv_docs = load_csv_documents(csv_path)
+
+    print("Loading additional .txt documents...")
+    extra_docs = load_directory_texts(extra_docs_dir)
+
+    all_docs = csv_docs + extra_docs
+    print(f"Loaded {len(all_docs)} total raw documents.")
+
+    print("Chunking documents...")
+    chunks = chunk_documents(all_docs)
+    print(f"Created {len(chunks)} chunks.")
+
+    print("Building FAISS index...")
+    index, embeddings, metadata = build_faiss_index(chunks)
+
+    return index, embeddings, metadata
+
+
+# -----------------------------
+# ASK FUNCTION – combines retrieval + LLM
+# -----------------------------
+from openai import OpenAI
+client = OpenAI()
+
+
+def answer_question(index, embeddings, metadata, question, k=4):
+    results = retrieve_top_k(index, question, metadata, k=k)
+
+    context = ""
+    for r in results:
+        context += f"Source: {r['metadata']}\n"
+        context += f"Distance: {r['distance']}\n\n"
+
+    prompt = f"""
+You are a domain-specific assistant.
+Answer ONLY using the context below.
+If the answer is not present, say "The dataset does not contain that information."
+
+CONTEXT:
+{context}
+
+QUESTION: {question}
+"""
+
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    answer = completion.choices[0].message["content"]
+
+    return {
+        "answer": answer,
+        "sources": [r["metadata"] for r in results]
+    }
