@@ -35,7 +35,7 @@ def answer_question(pipeline, question, k=4):
     docs = pipeline["documents"]
     index = pipeline["index"]
 
-    retrieved = retrieve_top_k(index, docs, question, k=k)
+    retrieved = retrieve_top_k(index, question, docs, k=k)
 
     context = "\n\n".join([r["text"] for r in retrieved])
 
