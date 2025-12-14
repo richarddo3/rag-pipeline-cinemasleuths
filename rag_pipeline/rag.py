@@ -35,18 +35,35 @@ def answer_question(pipeline, question, k=4):
     docs = pipeline["documents"]
     index = pipeline["index"]
 
-    # Correct argument order: (index, query, docs)
-    retrieved = retrieve_top_k(index, question, docs, k=k)
+    retrieved = retrieve_top_k(index, docs, question, k=k)
 
-    # retrieved now contains full doc info
-    context = "\n\n".join([r["text"] for r in retrieved])
+    context = "\n\n".join(r["text"] for r in retrieved)
 
-    answer = f"ANSWER BASED ON RETRIEVED DOCUMENTS:\n\n{context}"
+    prompt = f"""You are a movie data assistant.
+Answer the user's question **using ONLY the context below**.
+If the answer is not in the context, say "I cannot answer from the provided data."
+
+Question:
+{question}
+
+Context:
+{context}
+
+Answer:
+"""
+
+    # use small LLM (Qwen, Phi, etc)
+    from openai import OpenAI
+    client = OpenAI()
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    answer = response.choices[0].message["content"]
 
     return {
         "answer": answer,
-        "sources": [
-            {"id": r["id"], "distance": r["distance"]}
-            for r in retrieved
-        ]
+        "sources": retrieved
     }
