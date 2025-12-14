@@ -35,8 +35,10 @@ def answer_question(pipeline, question, k=4):
     docs = pipeline["documents"]
     index = pipeline["index"]
 
+    # Correct argument order: (index, query, docs)
     retrieved = retrieve_top_k(index, question, docs, k=k)
 
+    # retrieved now contains full doc info
     context = "\n\n".join([r["text"] for r in retrieved])
 
     answer = f"ANSWER BASED ON RETRIEVED DOCUMENTS:\n\n{context}"
@@ -44,6 +46,7 @@ def answer_question(pipeline, question, k=4):
     return {
         "answer": answer,
         "sources": [
-            {"id": r["id"], "distance": r["distance"]} for r in retrieved
+            {"id": r["id"], "distance": r["distance"]}
+            for r in retrieved
         ]
     }
