@@ -1,19 +1,13 @@
 %%writefile rag_pipeline/rag.py
 def build_prompt(query, docs):
     """
-    Build a grounded prompt for the LLM using retrieved context.
+    Build a context-grounded prompt for the LLM.
     """
-    context_blocks = []
-    for d in docs:
-        snippet = d.get("text", "")
-        context_blocks.append(snippet)
-
-    context = "\n\n".join(context_blocks)
+    context = "\n\n".join([d.get("text", "") for d in docs])
 
     return f"""
-You are a domain-specific assistant. 
-Answer using ONLY the context provided. 
-If the answer is not in the context, say "I don’t know based on the available documents."
+Answer ONLY using the context below. 
+If the answer is not available, say so.
 
 CONTEXT:
 {context}
@@ -26,19 +20,16 @@ ANSWER:
 
 
 def generate_answer(query, retriever, llm=None, k=5):
-    """
-    Retrieves context and then generates an answer using an LLM.
-    """
     docs = retriever.get_relevant_docs(query, k=k)
-
-    # Build prompt
     prompt = build_prompt(query, docs)
 
     if llm is None:
-        # Placeholder response for testing
-        return {"answer": "(LLM not connected yet)", "sources": docs}
+        # Debug mode
+        return {
+            "answer": "(LLM disabled — pipeline test successful)",
+            "sources": docs,
+            "prompt": prompt
+        }
 
-    # Actual model call
-    result = llm(prompt)
-
-    return {"answer": result, "sources": docs}
+    response_text = llm(prompt)
+    return {"answer": response_text, "sources": docs}
