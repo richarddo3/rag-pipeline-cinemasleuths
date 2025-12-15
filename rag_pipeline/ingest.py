@@ -56,8 +56,10 @@ def load_directory_texts(dir_path, extensions=(".txt", ".md", ".csv")):
                         "text": text,
                         "metadata": {"source": fname}
                     })
-                except:
-                    pass
+                except Exception as e:
+                    print("SKIPPED FILE:", full_path, e)
+                    continue
+
     return docs
 
 
@@ -66,22 +68,22 @@ def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
-    
+
     chunked = []
-    
+
     for doc in documents:
+        # 🚨 FIX: skip strings or corrupted items
+        if not isinstance(doc, dict):
+            continue
+
         chunks = splitter.split_text(doc["text"])
+
         for i, c in enumerate(chunks):
-            metadata = doc.get("metadata", {})
-
-            # ---- FIX: ensure metadata is always a dict ----
-            if not isinstance(metadata, dict):
-                metadata = {"source": str(metadata)}
-
             chunked.append({
                 "id": f"{doc['id']}_chunk_{i}",
                 "text": c,
-                "metadata": metadata
+                "metadata": doc["metadata"]
             })
-    
+
     return chunked
+
