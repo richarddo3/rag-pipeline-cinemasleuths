@@ -14,3 +14,12 @@ Unlike general-purpose chatbots, this system is intentionally constrained to ans
 This project demonstrates how structured datasets (CSV-based ETL outputs) can be transformed into searchable knowledge sources for conversational AI systems.
 
 Data & ETL Integration: The primary dataset is a cleaned CSV generated from an earlier ETL assignment: etl_cleaned_dataset.csv
+
+Running the Project:
+
+-Install dependencies: pip install -r api/requirements.txt
+-Set PYTHONPATH: export PYTHONPATH=$(pwd)
+-Start the Flask server: python3 api/app.py
+-Example API Call: curl -X POST http://localhost:8000/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Which movie had the highest worldwide gross?"}'
