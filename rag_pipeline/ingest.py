@@ -61,7 +61,7 @@ def load_directory_texts(dir_path, extensions=(".txt", ".md", ".csv")):
     return docs
 
 
-def chunk_documents(documents, chunk_size=5000, chunk_overlap=200):
+def chunk_documents(documents, chunk_size=800, chunk_overlap=150):
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
@@ -72,10 +72,16 @@ def chunk_documents(documents, chunk_size=5000, chunk_overlap=200):
     for doc in documents:
         chunks = splitter.split_text(doc["text"])
         for i, c in enumerate(chunks):
+            metadata = doc.get("metadata", {})
+
+            # ---- FIX: ensure metadata is always a dict ----
+            if not isinstance(metadata, dict):
+                metadata = {"source": str(metadata)}
+
             chunked.append({
                 "id": f"{doc['id']}_chunk_{i}",
                 "text": c,
-                "metadata": doc["metadata"]
+                "metadata": metadata
             })
     
     return chunked
