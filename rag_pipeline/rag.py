@@ -130,10 +130,11 @@ def answer_question(pipeline, question, k=4):
 
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
-    if "Answer" in decoded:
-        answer = decoded.split("Answer")[-1].strip(": \n")
+    if "Answer:" in decoded:
+        answer = decoded.split("Answer:", 1)[1].strip()
     else:
         answer = decoded.strip()
+
 
 
     # --- Format sources ---
