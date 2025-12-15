@@ -14,10 +14,9 @@ Unlike general-purpose chatbots, this system is intentionally constrained to ans
 
 This project demonstrates how structured datasets (CSV-based ETL outputs) can be transformed into searchable knowledge sources for conversational AI systems.
 
-##Data & ETL Integration: The primary dataset is a cleaned CSV generated from an earlier ETL assignment: etl_cleaned_dataset.csv
+Data & ETL Integration: The primary dataset is a cleaned CSV generated from an earlier ETL assignment: etl_cleaned_dataset.csv
 
-## Notebooks
-The `notebooks/` directory contains exploratory analysis and early experimentation used during dataset inspection and pipeline development. These notebooks are not required to run the final system.
+Notebooks: The `notebooks/` directory contains exploratory analysis and early experimentation used during dataset inspection and pipeline development. These notebooks are not required to run the final system.
 
 ##Running the Project:
 
