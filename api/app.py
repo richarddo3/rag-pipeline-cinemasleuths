@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from rag_pipeline.rag import build_rag_pipeline, answer_question
+from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
 
@@ -19,6 +20,10 @@ def ask():
     result = answer_question(pipeline, question, k=4)
 
     return jsonify(result)
+
+@app.route("/")
+def serve_ui():
+    return send_from_directory("ui", "index.html")
 
 if __name__ == "__main__":
     # Runs on VM
