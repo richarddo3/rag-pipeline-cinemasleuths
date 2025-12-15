@@ -47,46 +47,57 @@
   <button onclick="askQuestion()">Ask</button>
 
   <script>
-    async function askQuestion() {
-      const input = document.getElementById("question");
-      const chat = document.getElementById("chat");
-      const question = input.value.trim();
+async function askQuestion() {
+  const input = document.getElementById("question");
+  const chat = document.getElementById("chat");
+  const question = input.value.trim();
 
-      if (!question) return;
+  if (!question) return;
 
-      // Display user question
-      chat.innerHTML += `<div class="user">You:</div><div class="bot">${question}</div>`;
-      input.value = "";
+  chat.innerHTML += "<div class='user'>You:</div><div class='bot'>" + question + "</div>";
+  input.value = "";
 
-      // Send request to API
-      const response = await fetch("/api/ask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ question })
-      });
+  const loadingId = "loading-" + Date.now();
+  chat.innerHTML += "<div id='" + loadingId + "' class='bot'><em>Thinking...</em></div>";
+  chat.scrollTop = chat.scrollHeight;
 
-      const data = await response.json();
+  try {
+    const response = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question })
+    });
 
-      // Display answer
-      chat.innerHTML += `<div class="user">Assistant:</div><div class="bot">${data.answer}</div>`;
-
-      // Display sources
-      if (data.sources && data.sources.length > 0) {
-        data.sources.forEach(src => {
-          chat.innerHTML += `
-            <div class="source">
-              <strong>Source:</strong> ${src.id}<br/>
-              <em>${src.snippet}</em>
-            </div>
-          `;
-        });
-      }
-
-      chat.scrollTop = chat.scrollHeight;
+    if (!response.ok) {
+      throw new Error("Server error " + response.status);
     }
-  </script>
+
+    const data = await response.json();
+
+    document.getElementById(loadingId).remove();
+
+    chat.innerHTML += "<div class='user'>Assistant:</div><div class='bot'>" + data.answer + "</div>";
+
+    if (data.sources && data.sources.length > 0) {
+      data.sources.forEach(function(src) {
+        chat.innerHTML +=
+          "<div class='source'><strong>Source:</strong> " +
+          src.id +
+          "<br/><em>" +
+          src.snippet +
+          "</em></div>";
+      });
+    }
+
+  } catch (err) {
+    document.getElementById(loadingId).remove();
+    chat.innerHTML += "<div class='bot' style='color:red;'>Error: " + err.message + "</div>";
+  }
+
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+
 
 </body>
 </html>
