@@ -16,6 +16,9 @@ This project demonstrates how structured datasets (CSV-based ETL outputs) can be
 
 ##Data & ETL Integration: The primary dataset is a cleaned CSV generated from an earlier ETL assignment: etl_cleaned_dataset.csv
 
+## Notebooks
+The `notebooks/` directory contains exploratory analysis and early experimentation used during dataset inspection and pipeline development. These notebooks are not required to run the final system.
+
 ##Running the Project:
 
 -Install dependencies: pip install -r api/requirements.txt
