@@ -89,21 +89,23 @@ def answer_question(pipeline, question, k=4):
 
     # --- Prompt ---
     prompt = f"""
-You are a movie data assistant.
-
-Answer ONLY using the context below.
-Cite the source IDs you used in your answer.
-If the answer cannot be found in the context, say:
-"I cannot answer from the provided data."
-
-Question:
-{question}
-
-Context:
-{context}
-
-Answer:
-"""
+    You are a movie data assistant.
+    
+    Answer using ONLY the context below.
+    Compare values carefully and choose the correct answer.
+    Cite the source ID(s) you used.
+    
+    If the answer is not present, say:
+    "I cannot answer from the provided data."
+    
+    Question:
+    {question}
+    
+    Context:
+    {context}
+    
+    Answer (be concise and factual):
+    """
 
     # --- Generate ---
     tokenizer, model = get_llm()
