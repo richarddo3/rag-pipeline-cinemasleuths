@@ -7,6 +7,23 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import numpy as np
 
+EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+LLM_MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+
+DATA_PATH = "data/etl_cleaned_dataset.csv"
+
+
+SYSTEM_PROMPT = """
+You are a movie data assistant.
+
+Answer using ONLY the context below.
+Compare values carefully and choose the correct answer.
+Cite the source ID(s) you used.
+
+If the answer cannot be found in the context, say:
+"I cannot answer from the provided data."
+""".strip()
+
 
 # -----------------------------
 # Local LLM (Qwen 1.5 – 4B)
@@ -89,14 +106,7 @@ def answer_question(pipeline, question, k=4):
 
     # --- Prompt ---
     prompt = f"""
-    You are a movie data assistant.
-    
-    Answer using ONLY the context below.
-    Compare values carefully and choose the correct answer.
-    Cite the source ID(s) you used.
-    
-    If the answer is not present, say:
-    "I cannot answer from the provided data."
+    {SYSTEM_PROMPT}
     
     Question:
     {question}
@@ -105,7 +115,7 @@ def answer_question(pipeline, question, k=4):
     {context}
     
     Answer (be concise and factual):
-    """
+    """.strip()
 
     # --- Generate ---
     tokenizer, model = get_llm()
@@ -118,7 +128,13 @@ def answer_question(pipeline, question, k=4):
         do_sample=False
     )
 
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    if "Answer" in decoded:
+        answer = decoded.split("Answer")[-1].strip(": \n")
+    else:
+        answer = decoded.strip()
+
 
     # --- Format sources ---
     sources = []
