@@ -16,7 +16,7 @@ def build_rag_pipeline(
         docs += load_directory_texts(extra_docs_dir)
 
     print("Chunking...")
-    docs = chunk_documents(docs, chunk_size=1200, chunk_overlap=200)
+    docs = chunk_documents(docs, chunk_size=1000, chunk_overlap=200)
     docs = [d for d in docs if isinstance(d, dict)] 
 
     print("Embedding...")
