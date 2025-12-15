@@ -3,57 +3,98 @@ from .embeddings import embed_texts
 from .vector_store import build_faiss_index
 from .retriever import retrieve_top_k
 
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
+import numpy as np
 
+
+# -----------------------------
+# Local LLM (Qwen 1.5 – 4B)
+# -----------------------------
+_tokenizer = None
+_model = None
+
+def get_llm():
+    global _tokenizer, _model
+
+    if _model is None:
+        model_name = "Qwen/Qwen1.5-4B-Chat"
+        _tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        _model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True
+        )
+
+    return _tokenizer, _model
+
+
+# -----------------------------
+# Build RAG Pipeline
+# -----------------------------
 def build_rag_pipeline(
     csv_path="data/etl_cleaned_dataset.csv",
     extra_docs_dir="data/additional_documents"
 ):
-    print("Loading CSV...")
+    print("📄 Loading CSV documents...")
     docs = load_csv_documents(csv_path)
 
-    print("Loading extra documents...")
     if extra_docs_dir:
+        print("📂 Loading additional documents...")
         docs += load_directory_texts(extra_docs_dir)
 
-    print("Chunking...")
+    print("✂️ Chunking documents...")
     docs = chunk_documents(docs, chunk_size=1000, chunk_overlap=200)
-    docs = [d for d in docs if isinstance(d, dict)] 
+    docs = [d for d in docs if isinstance(d, dict)]
 
-    print("Embedding...")
+    print("🧠 Generating embeddings...")
     texts = [d["text"] for d in docs]
     embeddings = embed_texts(texts)
 
-    print("Building FAISS index...")
+    # Normalize for cosine similarity
+    embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+    print("📦 Building FAISS index...")
     index = build_faiss_index(embeddings)
 
+    print("✅ RAG pipeline ready.")
     return {
         "index": index,
         "documents": docs
     }
 
 
+# -----------------------------
+# Answer Question
+# -----------------------------
 def answer_question(pipeline, question, k=4):
-
-    # ALWAYS use docs created by build_rag_pipeline
     docs = pipeline["documents"]
     index = pipeline["index"]
 
-    # --- Step 1: Retrieve context ---
+    # --- Retrieve ---
     retrieved = retrieve_top_k(index, docs, question, k=k)
 
-    # Build readable context for the prompt
+    if not retrieved:
+        return {
+            "answer": "I cannot answer from the provided data.",
+            "sources": []
+        }
+
+    # Build context
     context = "\n\n".join(
         f"[SOURCE: {r['id']}]\n{r['text']}"
         for r in retrieved
     )
 
-    # --- Step 2: Build prompt ---
+    # --- Prompt ---
     prompt = f"""
 You are a movie data assistant.
 
-Answer using ONLY the context below.
-If the answer is not present, say:
-'I cannot answer from the provided data.'
+Answer ONLY using the context below.
+Cite the source IDs you used in your answer.
+If the answer cannot be found in the context, say:
+"I cannot answer from the provided data."
 
 Question:
 {question}
@@ -64,26 +105,30 @@ Context:
 Answer:
 """
 
-    # --- Step 3: Call LLM ---
-    from openai import OpenAI
-    client = OpenAI()
+    # --- Generate ---
+    tokenizer, model = get_llm()
 
-    response = client.chat.completions.create(
-        model="Qwen/Qwen1.5-4B-Chat",
-        messages=[{"role": "user", "content": prompt}],
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=300,
+        do_sample=False
     )
 
-    answer = response.choices[0].message.get("content", "").strip()
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    # --- Step 4: Return assignment-compliant output ---
-    sources_output = []
+    # --- Format sources ---
+    sources = []
     for r in retrieved:
         snippet = r["text"][:200].replace("\n", " ")
-        sources_output.append({
+        sources.append({
             "id": r["id"],
-            "distance": r["distance"],
+            "source": "etl_cleaned_dataset.csv",
             "snippet": snippet
         })
 
-    return {"answer": answer, "sources": sources_output}
-
+    return {
+        "answer": answer.strip(),
+        "sources": sources
+    }
