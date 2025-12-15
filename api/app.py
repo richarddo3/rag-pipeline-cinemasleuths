@@ -23,7 +23,7 @@ def ask():
 
 @app.route("/")
 def serve_ui():
-    return send_from_directory("ui", "index.html")
+    return send_from_directory("../ui", "index.html")
 
 if __name__ == "__main__":
     # Runs on VM
