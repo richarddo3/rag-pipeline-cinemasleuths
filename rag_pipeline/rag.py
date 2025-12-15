@@ -69,7 +69,7 @@ Answer:
     client = OpenAI()
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="Qwen/Qwen1.5-4B-Chat",
         messages=[{"role": "user", "content": prompt}],
     )
 
