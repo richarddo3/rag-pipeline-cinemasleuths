@@ -112,7 +112,7 @@ Answer:
 
     outputs = model.generate(
         **inputs,
-        max_new_tokens=300,
+        max_new_tokens=120,
         do_sample=False
     )
 
