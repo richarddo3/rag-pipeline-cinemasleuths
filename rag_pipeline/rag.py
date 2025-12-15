@@ -33,33 +33,27 @@ def build_rag_pipeline(
 
 
 def answer_question(pipeline, question, k=4):
-    """
-    Answers a question using ONLY retrieved context.
-    Returns a dict containing:
-        - answer: grounded LLM answer
-        - sources: list of source chunks with ids + snippet + distance
-    """
-    
+
+    # ALWAYS use docs created by build_rag_pipeline
     docs = pipeline["documents"]
     index = pipeline["index"]
 
-    # --- Step 1: Retrieve Top-k Chunks ---
+    # --- Step 1: Retrieve context ---
     retrieved = retrieve_top_k(index, docs, question, k=k)
 
-    # Create readable context block sent to the LLM
-    ccontext = "\n\n".join(
+    # Build readable context for the prompt
+    context = "\n\n".join(
         f"[SOURCE: {r['id']}]\n{r['text']}"
         for r in retrieved
     )
 
-
-    # --- Step 2: Build grounded prompt ---
+    # --- Step 2: Build prompt ---
     prompt = f"""
 You are a movie data assistant.
 
-Answer the user's question **using ONLY the context below**.
-If the answer is not in the context, say:
-"I cannot answer from the provided data."
+Answer using ONLY the context below.
+If the answer is not present, say:
+'I cannot answer from the provided data.'
 
 Question:
 {question}
@@ -70,29 +64,26 @@ Context:
 Answer:
 """
 
-    # --- Step 3: Call Local/OpenAI LLM ---
+    # --- Step 3: Call LLM ---
     from openai import OpenAI
     client = OpenAI()
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",     # Replace with Qwen/Phi/Gemma on the VM
-        messages=[{"role": "user", "content": prompt}]
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
     )
 
     answer = response.choices[0].message.get("content", "").strip()
 
-    # --- Step 4: Build Assignment-Compliant Output Format ---
+    # --- Step 4: Return assignment-compliant output ---
     sources_output = []
     for r in retrieved:
-        snippet = r["text"][:200].replace("\n", " ")  # 200-char preview
-
+        snippet = r["text"][:200].replace("\n", " ")
         sources_output.append({
             "id": r["id"],
             "distance": r["distance"],
             "snippet": snippet
         })
 
-    return {
-        "answer": answer,
-        "sources": sources_output
-    }
+    return {"answer": answer, "sources": sources_output}
+
