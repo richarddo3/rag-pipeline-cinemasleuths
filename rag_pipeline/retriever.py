@@ -5,17 +5,16 @@ def retrieve_top_k(index, docs, query, k=5):
     results = []
     for dist, idx in zip(distances, idxs):
 
-        # Skip invalid FAISS returns (e.g., -1 or strings)
-        if isinstance(idx, str):
-            try:
-                idx = int(idx)
-            except:
-                continue
-
-        if idx < 0 or idx >= len(docs):
-            continue  # FAISS pads with -1 when not enough results
+        # ---- FIX: ignore invalid FAISS padded indices ----
+        if idx == -1 or idx < 0 or idx >= len(docs):
+            continue
 
         doc = docs[idx]
+
+        # ---- FIX: ensure doc is a dict, not a stray string ----
+        if not isinstance(doc, dict):
+            continue
+
         results.append({
             "id": doc["id"],
             "text": doc["text"],
