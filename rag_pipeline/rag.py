@@ -17,6 +17,7 @@ def build_rag_pipeline(
 
     print("Chunking...")
     docs = chunk_documents(docs, chunk_size=1200, chunk_overlap=200)
+    docs = [d for d in docs if isinstance(d, dict)] 
 
     print("Embedding...")
     texts = [d["text"] for d in docs]
